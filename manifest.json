@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "(Und)ictionary",
+  "version": "2025.2.1",
+  "description": "Not a dictionary. Easily search wiktionary.",
+  "permissions": [
+    "storage",
+    "notifications",
+    "clipboardWrite",
+    "contextMenus"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "omnibox": {
+    "keyword": "ud"
+  },
+  "action": {
+    "default_title": "Open Dictionary",
+    "default_popup": "dictionary.html"
+  },
+  "icons": {
+    "48": "maskable_icon_x48.png",
+    "128": "maskable_icon_x128.png",
+    "512": "maskable_icon_x512.png"
+  }
+}
