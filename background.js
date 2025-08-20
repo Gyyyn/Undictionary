@@ -19,7 +19,12 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     // Create the URL for our bookmarks page, adding the search query as a parameter.
     const url = chrome.runtime.getURL('dictionary.html?q=' + encodeURIComponent(searchQuery));
     
-    // Open the bookmarks manager in a new tab with the search query already filled in.
-    chrome.tabs.create({ url: url });
+    // Create a new window with the size of a popup.
+    chrome.windows.create({
+      url: url,
+      type: 'popup',
+      width: 400,
+      height: 600
+    });
   }
 });

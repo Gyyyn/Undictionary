@@ -13,12 +13,8 @@ const theImagesElement = document.getElementById('the-images');
 const grossnessWarning = document.getElementById('grossness-warning');
 const revealGrossnessButton = document.getElementById('reveal-grossness-button');
 const definitionContent = document.getElementById('the-definition-content');
-const controlsAndOutput = document.getElementById('controls-and-output');
 const actionButtons = document.getElementById('action-buttons');
-const geminiExplainBtn = document.getElementById('gemini-explain-btn');
 const gotoTranslationsBtn = document.getElementById('goto-translations-btn');
-const geminiSpinner = document.getElementById('gemini-spinner');
-const geminiOutput = document.getElementById('gemini-output');
 const urlParams = new URLSearchParams(window.location.search);
 const searchQuery = urlParams.get('q');
 
@@ -45,6 +41,8 @@ const naughtyRegex = /(vagina|condom|circumcised|ejaculation|ejaculate|erection|
 const grossRegex = /(pus|blood|poop|excrement|urine|piss|shit)/i;
 
 // --- Event Listeners ---
+document.addEventListener('DOMContentLoaded', loadLang);
+languageSelector.addEventListener('change', setLang);
 lookupForm.addEventListener('submit', handleFormSubmit);
 
 revealGrossnessButton.addEventListener('click', () => {
@@ -70,8 +68,6 @@ definitionContent.addEventListener('click', (e) => {
     }
 });
 
-geminiExplainBtn.addEventListener('click', callGeminiToExplain);
-
 gotoTranslationsBtn.addEventListener('click', () => {
     const translationsSection = definitionContent.querySelector('[id^="Translations"]');
     if (translationsSection) {
@@ -80,6 +76,18 @@ gotoTranslationsBtn.addEventListener('click', () => {
 });
 
 // --- Main Functions ---
+function loadLang() {
+    chrome.storage.local.get(['selectedLanguage'], function(result) {
+        if (result.selectedLanguage) {
+            languageSelector.value = result.selectedLanguage;
+        }
+    });
+}
+
+function setLang() {
+    chrome.storage.local.set({selectedLanguage: languageSelector.value});
+}
+
 async function handleFormSubmit(e=null) {
 
     if (e)
@@ -162,55 +170,6 @@ async function fetchImageData(word, lang) {
     return images;
 }
 
-async function callGeminiToExplain() {
-    const word = theWordElement.textContent;
-    const definitionContainer = definitionContent.querySelector('ol');
-    
-    if (!definitionContainer) {
-        geminiOutput.textContent = "Couldn't find a definition to explain.";
-        geminiOutput.classList.remove('hidden');
-        return;
-    }
-
-    const definitionText = definitionContainer.innerText.trim();
-    const prompt = `Explain the word "${word}" in simple, easy-to-understand terms. Here is the dictionary definition for context: "${definitionText}"`;
-
-    geminiSpinner.classList.remove('hidden');
-    geminiOutput.classList.add('hidden');
-    geminiExplainBtn.disabled = true;
-
-    try {
-        let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
-        const payload = { contents: chatHistory };
-        const apiKey = "";
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-        
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) throw new Error(`API request failed with status ${response.status}`);
-        const result = await response.json();
-
-        if (result.candidates?.[0]?.content?.parts?.[0]?.text) {
-            const text = result.candidates[0].content.parts[0].text;
-            geminiOutput.innerHTML = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*/g, '').replace(/\n/g, '<br>');
-            geminiOutput.classList.remove('hidden');
-        } else {
-            throw new Error("Unexpected API response structure.");
-        }
-    } catch (error) {
-        console.error("Gemini API call failed:", error);
-        geminiOutput.textContent = "Sorry, I couldn't get an explanation at this time.";
-        geminiOutput.classList.remove('hidden');
-    } finally {
-        geminiSpinner.classList.add('hidden');
-        geminiExplainBtn.disabled = false;
-    }
-}
-
 // --- UI Rendering and Helper Functions ---
 
 function renderResults(word, definitionHtml, imageUrls) {
@@ -221,7 +180,6 @@ function renderResults(word, definitionHtml, imageUrls) {
     if (definitionHtml && definitionHtml.childNodes.length > 0) {
         definitionContent.replaceChildren(definitionHtml);
         definitionContent.classList.remove('hidden');
-        controlsAndOutput.classList.remove('hidden');
 
         // Show/hide the translations button based on content
         const translationsSection = definitionContent.querySelector('[id^="Translations"]');
@@ -344,8 +302,6 @@ function resetUI() {
     imagesContainer.classList.add('hidden');
     definitionContent.classList.add('hidden');
     definitionContent.innerHTML = '';
-    controlsAndOutput.classList.add('hidden');
-    geminiOutput.classList.add('hidden');
     gotoTranslationsBtn.classList.add('hidden');
     grossnessWarning.style.display = 'none';
     theImagesElement.classList.remove('blurred');
